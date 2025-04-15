@@ -1,4 +1,5 @@
 package ru.kata.spring.boot_security.demo.service;
+
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.model.User;
 import ru.kata.spring.boot_security.demo.repository.UserRepository;
+import ru.kata.spring.boot_security.demo.model.UserDto;
 import javax.persistence.EntityNotFoundException;
 import java.util.HashSet;
 import java.util.List;
@@ -70,6 +72,41 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
+    public User saveUser(UserDto userDto) {
+        User user = new User();
+        user.setFirstName(userDto.getFirstName());
+        user.setLastName(userDto.getLastName());
+        user.setAge(userDto.getAge());
+        user.setEmail(userDto.getEmail());
+        user.setPassword(passwordEncoder.encode(userDto.getPassword()));
+
+        Set<Role> roles = roleService.getRolesByIds(userDto.getRoleIds());
+        user.setRoles(roles);
+
+        return userRepository.save(user);
+    }
+
+    @Override
+    public User editUser(Long id, UserDto userDto) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        user.setFirstName(userDto.getFirstName());
+        user.setLastName(userDto.getLastName());
+        user.setAge(userDto.getAge());
+        user.setEmail(userDto.getEmail());
+
+        if (userDto.getPassword() != null && !userDto.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userDto.getPassword()));
+        }
+
+        Set<Role> roles = roleService.getRolesByIds(userDto.getRoleIds());
+        user.setRoles(roles);
+
+        return userRepository.save(user);
+    }
+
+    @Override
     @Transactional
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
@@ -99,4 +136,5 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                         .collect(Collectors.toList())
         );
     }
+
 }

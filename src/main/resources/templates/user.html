@@ -1,31 +1,24 @@
 <!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <title>User page</title>
 </head>
 <body class="bg-light">
-
 <header class="header navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-1">
     <div class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6">
-        <div class="d-inline h5 fw-bold">
-            <span sec:authentication="name">Company name</span>
-        </div>
-        <div class="d-inline h5 fw-light">
-            <span>with roles:</span>
-        </div>
-        <div class="d-inline h5 fw-light">
-            <span sec:authentication="principal.authorities">Roles</span>
-        </div>
+        <span id="currentUsername" class="h5 fw-bold">Loading...</span>
+        <span class="h5 fw-light"> with roles: </span>
+        <span id="currentUserRoles" class="h5 fw-light">Loading...</span>
     </div>
     <div class="navbar-nav">
         <div class="nav-item text-nowrap">
-            <form th:action="@{/logout}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <form id="logoutForm" action="/logout" method="post">
+                <input type="hidden" name="_csrf" id="csrfToken">
                 <button type="submit" class="btn btn-link nav-link px-3">Logout</button>
             </form>
         </div>
@@ -36,8 +29,8 @@
     <div class="row">
         <nav class="d-grid gap-2 nav nav-pills flex-column col-md-3 col-xl-2 d-md-block px-0 pt-2 bg-white">
             <div class="position-sticky" style="height: calc(100vh - 48px); overflow-x: hidden;">
-                <a sec:authorize="hasAuthority('ROLE_ADMIN')" class="nav-link" aria-current="page" href="/admin">Admin</a>
-                <a class="nav-link active" href="/user">User</a>
+                <a class="nav-link" href="/admin" id="adminLink">Admin</a>
+                <a class="nav-link active" href="/user" id="userLink">User</a>
             </div>
         </nav>
 
@@ -52,25 +45,15 @@
                         <table class="table table-striped align-middle">
                             <thead class="border-top">
                             <tr>
-                                <th scope="col">ID</th>
-                                <th scope="col">First Name</th>
-                                <th scope="col">Last Name</th>
-                                <th scope="col">Age</th>
-                                <th scope="col">Email</th>
-                                <th scope="col">Role</th>
+                                <th>ID</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Age</th>
+                                <th>Email</th>
+                                <th>Role</th>
                             </tr>
                             </thead>
-                            <tbody>
-                            <tr th:if="${user != null}">
-                                <td th:text="${user.id}">ID</td>
-                                <td th:text="${user.firstName}">First Name</td>
-                                <td th:text="${user.lastName}">Last Name</td>
-                                <td th:text="${user.age}">Age</td>
-                                <td th:text="${user.email}">Email</td>
-                                <td>
-                                    <span th:each="role : ${user.roles}" th:text="${role.name} + ' '"></span>
-                                </td>
-                            </tr>
+                            <tbody id="userInfoBody">
                             </tbody>
                         </table>
                     </div>
@@ -81,6 +64,55 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.content ||
+            document.querySelector('input[name="_csrf"]')?.value;
 
+        try {
+            const response = await fetch('/api/user', {
+                headers: { 'X-CSRF-TOKEN': csrfToken }
+            });
+
+            if (!response.ok) throw new Error('Failed to load user data');
+
+            const user = await response.json();
+
+            // Update header
+            document.getElementById('currentUsername').textContent = user.email;
+            document.getElementById('currentUserRoles').textContent =
+                user.roles.map(r => r.name.replace('ROLE_', '')).join(', ');
+
+            // Update user info table
+            document.getElementById('userInfoBody').innerHTML = `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${user.firstName}</td>
+                        <td>${user.lastName}</td>
+                        <td>${user.age}</td>
+                        <td>${user.email}</td>
+                        <td>${user.roles.map(r => r.name.replace('ROLE_', '')).join(', ')}</td>
+                    </tr>
+                `;
+
+            const adminLink = document.getElementById('adminLink');
+            if (user.roles.some(r => r.name === 'ROLE_ADMIN')) {
+                adminLink.style.display = 'block';
+            } else {
+                adminLink.style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error('Error loading user data:', error);
+            document.getElementById('userInfoBody').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-danger">Error loading user data</td>
+                    </tr>
+                `;
+        }
+
+        document.getElementById('csrfToken').value = csrfToken;
+    });
+</script>
+</body>
 </html>

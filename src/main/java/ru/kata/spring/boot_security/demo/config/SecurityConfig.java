@@ -1,5 +1,7 @@
 package ru.kata.spring.boot_security.demo.config;
+
 import org.springframework.context.annotation.Lazy;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import ru.kata.spring.boot_security.demo.service.UserService;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +12,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -32,7 +36,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
+                .antMatchers(HttpMethod.OPTIONS).permitAll() // Добавьте эту строку
                 .antMatchers("/login").permitAll()
+                .antMatchers("/api/admin/**").hasRole("ADMIN")
+                .antMatchers("/api/user/**").hasAnyRole("ADMIN", "USER")
                 .antMatchers("/admin/**").hasRole("ADMIN")
                 .antMatchers("/user/**").hasAnyRole("ADMIN", "USER")
                 .anyRequest().authenticated()
@@ -57,3 +64,5 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return new BCryptPasswordEncoder();
     }
 }
+
+
