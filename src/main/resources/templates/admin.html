@@ -123,10 +123,12 @@
                 <h5 class="modal-title">Edit user</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body text-center">
                 <form id="editForm">
                     <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                    <input type="hidden" id="editId" name="id">
+
+                    <label class="form-label"><strong>ID:</strong></label>
+                    <input class="form-control" id="editId" name="Id" disabled>
 
                     <label class="form-label mt-3 mb-0"><strong>First name</strong></label>
                     <input class="form-control" id="editFirstName" name="firstName" required>
@@ -164,12 +166,28 @@
                 <h5 class="modal-title">Delete user</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this user?</p>
-                <div id="deleteUserInfo"></div>
+            <div class="modal-body text-center">
                 <form id="deleteForm">
                     <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                     <input type="hidden" id="deleteId" name="id">
+
+                    <label class="form-label"><strong>ID:</strong></label>
+                    <input class="form-control mb-2" id="displayDeleteId" disabled>
+
+                    <label class="form-label"><strong>First name:</strong></label>
+                    <input class="form-control mb-2" id="displayDeleteFirstName" disabled>
+
+                    <label class="form-label"><strong>Last name:</strong></label>
+                    <input class="form-control mb-2" id="displayDeleteLastName" disabled>
+
+                    <label class="form-label"><strong>Age:</strong></label>
+                    <input class="form-control mb-2" id="displayDeleteAge" type="number" disabled>
+
+                    <label class="form-label"><strong>Email:</strong></label>
+                    <input class="form-control mb-2" id="displayDeleteEmail" type="email" disabled>
+
+                    <label class="form-label"><strong>Role:</strong></label>
+                    <input class="form-control mb-2" id="displayDeleteRoles" disabled>
                 </form>
             </div>
             <div class="modal-footer">
@@ -202,7 +220,6 @@
             })(fetch);
         }
         await loadCurrentUser();
-
         await Promise.all([loadUsers(), loadRoles()]);
 
         renderUserTable();
@@ -277,25 +294,23 @@
         users.forEach(user => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                    <td>${user.id}</td>
-                    <td>${user.firstName}</td>
-                    <td>${user.lastName}</td>
-                    <td>${user.age}</td>
-                    <td>${user.email}</td>
-                    <td>${user.roles.map(r => r.name.replace('ROLE_', '')).join(', ')}</td>
-                    <td>
-                        <button class="btn btn-success edit-btn"
-                                data-user-id="${user.id}">
-                            Edit
-                        </button>
-                    </td>
-                    <td>
-                        <button class="btn btn-danger delete-btn"
-                                data-user-id="${user.id}">
-                            Delete
-                        </button>
-                    </td>
-                `;
+                <td>${user.id}</td>
+                <td>${user.firstName}</td>
+                <td>${user.lastName}</td>
+                <td>${user.age}</td>
+                <td>${user.email}</td>
+                <td>${user.roles.map(r => r.name.replace('ROLE_', '')).join(', ')}</td>
+                <td>
+                    <button class="btn btn-success btn-sm edit-btn" data-user-id="${user.id}">
+                        Edit
+                    </button>
+                </td>
+                <td>
+                    <button class="btn btn-danger btn-sm delete-btn" data-user-id="${user.id}">
+                        Delete
+                    </button>
+                </td>
+            `;
             tbody.appendChild(row);
         });
     }
@@ -337,7 +352,6 @@
                 new bootstrap.Modal(document.getElementById('userEdit')).show();
             } else if (e.target.classList.contains('delete-btn')) {
                 prepareDeleteModal(e.target.dataset.userId);
-                new bootstrap.Modal(document.getElementById('userDelete')).show();
             }
         });
     }
@@ -363,14 +377,18 @@
         const user = users.find(u => u.id == userId);
         if (!user) return;
 
-        document.getElementById('deleteUserInfo').innerHTML = `
-                <p><strong>ID:</strong> ${user.id}</p>
-                <p><strong>Name:</strong> ${user.firstName} ${user.lastName}</p>
-                <p><strong>Email:</strong> ${user.email}</p>
-                <p><strong>Roles:</strong> ${user.roles.map(r => r.name.replace('ROLE_', '')).join(', ')}</p>
-            `;
-
+        // Заполняем поля данными пользователя
         document.getElementById('deleteId').value = user.id;
+        document.getElementById('displayDeleteId').value = user.id;
+        document.getElementById('displayDeleteFirstName').value = user.firstName;
+        document.getElementById('displayDeleteLastName').value = user.lastName;
+        document.getElementById('displayDeleteAge').value = user.age;
+        document.getElementById('displayDeleteEmail').value = user.email;
+        document.getElementById('displayDeleteRoles').value =
+            user.roles.map(r => r.name.replace('ROLE_', '')).join(', ');
+
+        // Показываем модальное окно
+        new bootstrap.Modal(document.getElementById('userDelete')).show();
     }
 
     // Form Handlers
@@ -409,8 +427,6 @@
             // Reset form and switch tab
             e.target.reset();
             document.getElementById('user-table-tab').click();
-
-            alert('User added successfully!');
         } catch (error) {
             console.error('Error adding user:', error);
             alert(`Error: ${error.message}`);
@@ -452,8 +468,6 @@
 
             // Close modal
             bootstrap.Modal.getInstance(document.getElementById('userEdit')).hide();
-
-            alert('User updated successfully!');
         } catch (error) {
             console.error('Error updating user:', error);
             alert(`Error: ${error.message}`);
@@ -484,8 +498,6 @@
 
             // Close modal
             bootstrap.Modal.getInstance(document.getElementById('userDelete')).hide();
-
-            alert('User deleted successfully!');
         } catch (error) {
             console.error('Error deleting user:', error);
             alert(`Error: ${error.message}`);
